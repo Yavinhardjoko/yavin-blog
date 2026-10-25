@@ -4,35 +4,6 @@ document.addEventListener("DOMContentLoaded", () => {
     node.textContent = new Date().getFullYear();
   });
 
-  const themeToggles = document.querySelectorAll("[data-theme-toggle]");
-  const updateThemeToggle = (theme) => {
-    document.documentElement.dataset.theme = theme;
-    themeToggles.forEach((button) => {
-      const isDark = theme === "dark";
-      button.setAttribute("aria-label", isDark ? "Aktifkan mode terang" : "Aktifkan mode malam");
-      button.title = isDark ? "Aktifkan mode terang" : "Aktifkan mode malam";
-      button.querySelector("span").textContent = isDark ? "☀" : "☾";
-    });
-  };
-  let savedTheme = null;
-  try {
-    savedTheme = localStorage.getItem("yavin-theme");
-  } catch (error) {
-    console.error("Unable to read the saved color theme:", error);
-  }
-  updateThemeToggle(savedTheme === "dark" ? "dark" : "light");
-  themeToggles.forEach((button) => {
-    button.addEventListener("click", () => {
-      const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
-      updateThemeToggle(theme);
-      try {
-        localStorage.setItem("yavin-theme", theme);
-      } catch (error) {
-        console.error("Unable to save the color theme:", error);
-      }
-    });
-  });
-
   const discordProfile = document.querySelector("[data-discord-profile]");
   if (discordProfile) {
     const userId = discordProfile.dataset.userId;
@@ -47,11 +18,52 @@ document.addEventListener("DOMContentLoaded", () => {
     const liveText = discordProfile.querySelector("[data-discord-live-text]");
     const setupLink = discordProfile.querySelector("[data-discord-setup-link]");
     const fallbackAvatar = avatar.src;
+    const lastOnlineStorageKey = `yavin-discord-last-online-${userId}`;
+    const lastGameStorageKey = `yavin-discord-last-game-${userId}`;
     const statuses = {
       online: "Online",
       idle: "Idle",
       dnd: "Do not disturb",
       offline: "Offline"
+    };
+    const readLastOnline = () => {
+      try {
+        const timestamp = Number(localStorage.getItem(lastOnlineStorageKey));
+        return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : null;
+      } catch (error) {
+        console.error("Unable to read the last Discord online time:", error);
+        return null;
+      }
+    };
+    const rememberOnline = (timestamp) => {
+      try {
+        localStorage.setItem(lastOnlineStorageKey, String(timestamp));
+      } catch (error) {
+        console.error("Unable to save the last Discord online time:", error);
+      }
+    };
+    const readLastGame = () => {
+      try {
+        return localStorage.getItem(lastGameStorageKey);
+      } catch (error) {
+        console.error("Unable to read the last Discord game:", error);
+        return null;
+      }
+    };
+    const rememberLastGame = (gameName) => {
+      try {
+        localStorage.setItem(lastGameStorageKey, gameName);
+      } catch (error) {
+        console.error("Unable to save the last Discord game:", error);
+      }
+    };
+    const formatLastOnline = (timestamp) => {
+      const minutes = Math.max(1, Math.floor((Date.now() - timestamp) / 60000));
+      if (minutes < 60) return `Online ${minutes} menit lalu`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `Online ${hours} jam lalu`;
+      const days = Math.floor(hours / 24);
+      return `Online ${days} hari lalu`;
     };
 
     const updateDiscordProfile = async () => {
@@ -59,7 +71,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const response = await fetch(`https://api.lanyard.rest/v1/users/${encodeURIComponent(userId)}`);
         if (response.status === 404) {
           presence.textContent = "Join the Lanyard Discord server to enable live presence.";
-          statusDot.dataset.status = "offline";
+          presence.dataset.status = "unavailable";
+          statusDot.dataset.status = "unavailable";
+          discordProfile.dataset.status = "unavailable";
           liveLabel.dataset.state = "unavailable";
           liveText.textContent = "NOT CONNECTED";
           setupLink.hidden = false;
@@ -71,7 +85,9 @@ document.addEventListener("DOMContentLoaded", () => {
         const result = await response.json();
         if (!result.success || !result.data || !result.data.discord_user) {
           presence.textContent = "Join the Lanyard Discord server to enable live presence.";
-          statusDot.dataset.status = "offline";
+          presence.dataset.status = "unavailable";
+          statusDot.dataset.status = "unavailable";
+          discordProfile.dataset.status = "unavailable";
           liveLabel.dataset.state = "unavailable";
           liveText.textContent = "NOT CONNECTED";
           setupLink.hidden = false;
@@ -83,15 +99,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const data = result.data;
         const user = data.discord_user;
         const status = statuses[data.discord_status] ? data.discord_status : "offline";
-        liveLabel.dataset.state = "live";
-        liveText.textContent = "LIVE";
+        const isOffline = status === "offline";
+        if (status === "online") rememberOnline(Date.now());
+        const lastOnline = isOffline ? readLastOnline() : null;
+        discordProfile.dataset.status = status;
+        liveLabel.dataset.state = status;
+        liveText.textContent = status === "idle" ? "IDLE" : status === "dnd" ? "DND" : isOffline ? "OFFLINE" : "LIVE";
         setupLink.hidden = true;
         const avatarUrl = user.avatar
           ? `https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.${user.avatar.startsWith("a_") ? "gif" : "png"}?size=128`
           : "";
         name.textContent = user.global_name || user.username || "Discord user";
         handle.textContent = user.username ? `@${user.username}` : "Discord profile";
-        presence.textContent = statuses[status];
+        presence.textContent = isOffline
+          ? lastOnline ? formatLastOnline(lastOnline) : "Offline"
+          : statuses[status];
+        presence.dataset.status = status;
         statusDot.dataset.status = status;
         if (avatarUrl) {
           avatar.src = avatarUrl;
@@ -100,8 +123,15 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         const currentActivity = (data.activities || []).find((item) => item.name !== "Custom Status");
+        const currentGame = (data.activities || []).find((item) => item.type === 0 && item.name);
         const customStatus = (data.activities || []).find((item) => item.name === "Custom Status");
-        const activityText = currentActivity
+        if (currentGame) rememberLastGame(currentGame.name);
+        const lastGame = currentGame ? currentGame.name : readLastGame();
+        const activityText = isOffline
+          ? lastGame ? `Last played: ${lastGame}` : "Last game: Not detected yet"
+          : currentGame
+            ? `Playing ${currentGame.name}`
+            : currentActivity
           ? `Playing ${currentActivity.name}`
           : customStatus && (customStatus.state || customStatus.emoji?.name)
             ? `Status: ${[customStatus.emoji?.name, customStatus.state].filter(Boolean).join(" ")}`
@@ -112,7 +142,9 @@ document.addEventListener("DOMContentLoaded", () => {
       } catch (error) {
         console.error("Unable to load Discord presence:", error);
         presence.textContent = "Could not connect to Lanyard. Please try again shortly.";
-        statusDot.dataset.status = "offline";
+        presence.dataset.status = "unavailable";
+        statusDot.dataset.status = "unavailable";
+        discordProfile.dataset.status = "unavailable";
         liveLabel.dataset.state = "unavailable";
         liveText.textContent = "UNAVAILABLE";
         setupLink.hidden = true;

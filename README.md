@@ -50,14 +50,16 @@ Article content is HTML, not Markdown, so it works without a build system. You c
 
 - This starter uses Google Fonts via an external stylesheet. If the fonts cannot load, it falls back to system sans-serif/serif fonts.
 - The social links are placeholders until you replace them.
-- The homepage Discord profile card reads public presence from Lanyard and refreshes every 30 seconds. The account must join the Lanyard Discord server for its live presence to be available. The animated banner is the Tenor clip shared by the site owner, served as a small looping MP4 with a PNG poster for faster loading. The magenta border and avatar decoration are visual styling, not synchronized Discord Nitro effects. Replace `assets/images/discord-banner.mp4` and `assets/images/discord-banner-poster.png` to customize the banner. The user ID is public; never expose a Discord bot token or other secret in browser-side JavaScript.
+- The homepage Discord profile card reads public presence from Lanyard and refreshes every 30 seconds. Offline status is shown in red; the last observed online time is saved in the browser and displayed as a relative time when the profile goes offline. The last detected game is also saved locally and shown when offline. The account must join the Lanyard Discord server for its live presence to be available. The animated banner is the Tenor clip shared by the site owner, served as a small looping MP4 with a PNG poster for faster loading. The magenta border and avatar decoration are visual styling, not synchronized Discord Nitro effects. Replace `assets/images/discord-banner.mp4` and `assets/images/discord-banner-poster.png` to customize the banner. The user ID is public; never expose a Discord bot token or other secret in browser-side JavaScript.
 
 
 ## Interactive effects included
 
 - Scroll reveal animations as sections enter the screen.
-- A light/night mode toggle in the header, with the selected theme saved in the browser.
+- A fixed dark theme with purple and pink accents across all pages.
+- An animated cyberpunk city backdrop with neon skyscrapers and a 3D perspective grid, respecting reduced-motion settings.
 - A CSS 3D green orb on the homepage, with gentle floating motion and orbit rings.
+- Two animated Polaroid photos on the homepage that shuffle between the front and back.
 - Pointer-controlled 3D tilt on the profile card and article artwork (desktop/laptop).
 - A slim scroll-progress indicator in the header.
 - A short transition when opening another page on this site.
@@ -66,6 +68,6 @@ Article content is HTML, not Markdown, so it works without a build system. You c
 These effects use plain CSS and JavaScript; no build step, framework, or API key is required. The 3D orb is CSS-based (not a heavy WebGL scene), so the site stays lightweight for Cloudflare Pages.
 
 
-## Water transition revision
+## Bubble transition
 
-Internal page links trigger a green water-like wipe rising from the bottom. The current page sinks and the headings/letters fade backward before the next page opens. The profile card is excluded from the scroll-reveal transform so it stays visible and avoids transform conflicts. Reduced-motion settings disable the effects.
+Internal page links trigger a purple-pink wipe with bubbles rising from the bottom before the next page opens. The current page sinks slightly as it transitions. Reduced-motion settings disable the transition.
