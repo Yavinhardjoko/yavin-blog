@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 560">
+<rect width="600" height="560" fill="#e5eadf"/>
+<circle cx="300" cy="205" r="100" fill="#c3d3b5"/>
+<path d="M115 560c10-125 82-205 185-205s175 80 185 205" fill="#b5cba3"/>
+<circle cx="300" cy="205" r="73" fill="#f7f7f4"/>
+<path d="M230 190c0-57 31-93 78-93 48 0 78 38 78 93-20-21-47-31-78-31s-57 10-78 31z" fill="#647b56"/>
+<text x="300" y="515" font-family="monospace" font-size="18" text-anchor="middle" fill="#506348" letter-spacing="3">ADD YOUR PHOTO</text>
+</svg>
